@@ -86,7 +86,7 @@ def decode(to_decode: str, polynom: str, t: int):
     return to_decode[:-len(polynom) + 1]
 
 
-def add_polynomials(poly1, poly2):
+def xor_polynomials(poly1: BinStr, poly2: BinStr):
     s1 = len(poly1)
     s2 = len(poly2)
 
@@ -100,13 +100,7 @@ def add_polynomials(poly1, poly2):
     for i in range(s1):
         result[i] = '1' if poly1[i] != poly2[i] else '0'
 
-    index = 0
-    for i in range(s1):
-        if result[i] != '0':
-            index = i
-            break
-
-    return ''.join(result[index:])
+    return ''.join(result)
 
 
 if __name__ == "__main__":
