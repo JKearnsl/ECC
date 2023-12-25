@@ -52,7 +52,6 @@ def encode(to_encode: BinStr, polynom: BinStr):
 
 def decode(to_decode: str, polynom: str, t: int):
     shifts = 0
-    len_message = len(to_decode)
 
     while True:
         syndrome = calc_syndrome(to_decode, polynom)
@@ -65,7 +64,7 @@ def decode(to_decode: str, polynom: str, t: int):
                 f" Сдвиг влево ( Синдром = {syndrome!r} Исправленная строка = {to_decode!r})"
             )
         else:
-            to_decode = add_polynomials(to_decode, syndrome)
+            to_decode = xor_polynomials(to_decode, syndrome)
             logging.info(
                 f"[Декодирование] [Сдвигов: {shifts}] Кол-во единиц в синдроме меньше или равно t "
                 f"({syndrome.count('1')} <= {t}) "
@@ -75,10 +74,6 @@ def decode(to_decode: str, polynom: str, t: int):
 
     logging.info(f"[Декодирование] Побитовый сдвиг вправо на {shifts} позиций")
     for _ in range(shifts):
-        while len(to_decode) < len_message:
-            logging.info(f"[Декодирование] [{_ + 1}/{shifts}] Добавляем нули в начало")
-            to_decode = '0' + to_decode
-
         to_decode = to_decode[len(to_decode) - 1] + to_decode[:len(to_decode) - 1]
         logging.info(f"[Декодирование] [{_ + 1}/{shifts}] {to_decode!r}")
 
