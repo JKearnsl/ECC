@@ -5,7 +5,7 @@
 """
 import logging
 
-from src.core.utils import build_syndrome_matrix
+from src.core.utils import build_syndrome_cyclic_matrix
 
 BinStr = str
 
@@ -39,7 +39,7 @@ def decode(to_decode: BinStr, polynom: BinStr, max_req: int = 10) -> BinStr:
         return to_decode[:-len(polynom) + 1]
     else:
         logging.info(f"[Осталось попыток: {max_req - 1}] Декодирование с ошибкой, синдром ошибки = {syndrome!r}")
-        syndrome_matrix = build_syndrome_matrix(calc_syndrome, polynom)
+        syndrome_matrix = build_syndrome_cyclic_matrix(calc_syndrome, polynom)
         error_index = syndrome_matrix.index(list(map(int, syndrome)))
         logging.info(f"Индекс ошибки = {error_index!r}")
 
