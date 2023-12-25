@@ -50,87 +50,40 @@ def encode(to_encode: BinStr, polynom: BinStr):
     return cyclic_encode(to_encode, polynom)
 
 
-def decode(to_decode: BinStr, polynom: BinStr, t: int) -> BinStr:
-    assert all(bit in '01' for bit in to_decode), "Неверный вход: строка должна быть двоичной"
-
-    shift_count = 0
-    original_message = to_decode
-    original_shift = 0  # Сохраняем исходный сдвиг
+def decode(to_decode: str, polynom: str, t: int):
+    shifts = 0
+    len_message = len(to_decode)
 
     while True:
         syndrome = calc_syndrome(to_decode, polynom)
-        if syndrome == "0" * (len(polynom) - 1):
-            logging.info(f"[Декодирование] Успешно декодировано без ошибок (синдром = {syndrome!r})")
-            return to_decode[:-len(polynom) + 1]
 
         if syndrome.count('1') > t:
-            logging.info(
-                f"[Декодирование] Кол-во единиц в синдроме больше t ({syndrome.count('1')} > {t}) синдром = {syndrome!r}"
-            )
-            to_decode = to_decode[1:] + to_decode[0]
-            shift_count += 1
-            continue
-
-        logging.info(
-            f"[Декодирование] Кол-во единиц в синдроме меньше или равно t "
-            f"({syndrome.count('1')} <= {t}) синдром = {syndrome!r}"
-        )
-
-        syndrome_int = list(map(int, syndrome))
-        corrected_to_decode = list(map(int, to_decode))
-
-        # Исправляем ошибки
-        for i in range(len(syndrome_int)):
-            if syndrome_int[i] == 1:
-                error_position = len(to_decode) - i - 1
-                corrected_to_decode[error_position] = 1 - corrected_to_decode[error_position]
-
-        to_decode = "".join(map(str, corrected_to_decode))
-
-        # Восстанавливаем сдвиг для исправленного сообщения
-        for _ in range(shift_count):
-            to_decode = to_decode[-1] + to_decode[:-1]
-
-        logging.info(f"[Декодирование] Исправленная строка = {to_decode!r}")
-
-        # Восстанавливаем исходный сдвиг для сравнения с оригинальным сообщением
-        for _ in range(original_shift):
-            original_message = original_message[-1] + original_message[:-1]
-
-        return original_message[:-len(polynom) + 1]
-
-
-def bch_decode(to_decode: str, polynom: str, t: int):
-    shifts = 0
-    len_message = len(to_decode) - len(polynom) + 1
-
-    while True:
-        remainder = calc_syndrome(to_decode, polynom)
-
-        print(f"Кодовое слово: {to_decode}")
-        print(f"Остаток: {remainder}")
-
-        if remainder.count('1') > t:
-            print("Слишком много единиц! Делаем сдвиг влево:")
             to_decode = to_decode[1:] + to_decode[0]
             shifts += 1
+            logging.info(
+                f"[Декодирование] [Сдвигов: {shifts}] Кол-во единиц в синдроме больше t ({syndrome.count('1')} > {t})"
+                f" Сдвиг влево ( Синдром = {syndrome!r} Исправленная строка = {to_decode!r})"
+            )
         else:
-            print("Получилось! Исправляем многочлен:")
-            to_decode = add_polynomials(to_decode, remainder)
-            print(to_decode)
+            to_decode = add_polynomials(to_decode, syndrome)
+            logging.info(
+                f"[Декодирование] [Сдвигов: {shifts}] Кол-во единиц в синдроме меньше или равно t "
+                f"({syndrome.count('1')} <= {t}) "
+                f"( Синдром = {syndrome!r} Исправленная строка = {to_decode!r})"
+            )
             break
 
-    print(f"Теперь сдвигаем его вправо на {shifts}:")
+    logging.info(f"[Декодирование] Побитовый сдвиг вправо на {shifts} позиций")
     for _ in range(shifts):
         while len(to_decode) < len_message:
+            logging.info(f"[Декодирование] [{_ + 1}/{shifts}] Добавляем нули в начало")
             to_decode = '0' + to_decode
 
         to_decode = to_decode[len(to_decode) - 1] + to_decode[:len(to_decode) - 1]
+        logging.info(f"[Декодирование] [{_ + 1}/{shifts}] {to_decode!r}")
 
-
-    print(to_decode)
-    decoded_message = to_decode[:-len(polynom) + 1]
-    return decoded_message
+    logging.info(f"[Декодирование] Декодирование завершено! Итоговая строка = {to_decode!r}")
+    return to_decode[:-len(polynom) + 1]
 
 
 def add_polynomials(poly1, poly2):
@@ -157,57 +110,20 @@ def add_polynomials(poly1, poly2):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(message)s',
+    )
     message = '1101010'
     polynom = '111010001'
     t = 2
 
-    # Кодирование сообщения
     encoded_message = encode(message, polynom)
     print(f"Закодированное сообщение: {encoded_message}")
 
     encoded_message = '000101011110010'
 
-    # Декодирование сообщения
-    decoded_message = bch_decode(encoded_message, polynom, t)
+    decoded_message = decode(encoded_message, polynom, t)
     print(f"Декодированное сообщение: {decoded_message}")
 
-    # Проверка, что декодированное сообщение совпадает с исходным
     assert decoded_message == message
-
-
-"""
-Проверь вот у меня кусок кода на c# 
-```cs
-tbLog.AppendText("Теперь сдвигаем его вправо на "+shifts+":\r\n");
-            for (int i = 0; i < shifts; i++)
-            {
-                string s = p1;
-                if (s.Length < n1)
-                {
-                    while (s.Length < n1)
-                    {
-                        s = '0' + s;
-                    }
-                }
-                s = s[s.Length-1] + s.Substring(0, s.Length-1);
-                p1 = new Polynom(s);
-            }
-            tbLog.AppendText(p1 + "\r\n");
-            tbCoded.Text = p1;
-            tbResult.Text = ((string)p1).Substring(0, k);
-```
-
-И мой кусок кода на питоне
-```python
-print(f"Теперь сдвигаем его вправо на {shifts}:")
-    for _ in range(shifts):
-        to_decode = to_decode[-1] + to_decode[:-1]
-
-    print(to_decode)
-    decoded_message = to_decode[:-len(polynom) + 1]
-    return decoded_message
-```
-
-у меня тут ошибка на питоне и нужно чтобы работало как на шарпах
-"""
